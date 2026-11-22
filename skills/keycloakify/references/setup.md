@@ -1,90 +1,136 @@
 # Setup
 
-## Starters
-
-Starting from a starter is the recommended path:
-
-| Framework | Repo |
-|---|---|
-| React (most complete, recommended) | `git clone https://github.com/keycloakify/keycloakify-starter` |
-| Angular | `git clone https://github.com/keycloakify/keycloakify-starter-angular-vite keycloakify-starter` |
-| Svelte | `git clone https://github.com/keycloakify/keycloakify-starter-svelte keycloakify-starter` |
-
-```bash
-cd keycloakify-starter
-yarn install            # or npm/pnpm/bun; delete yarn.lock if you don't use yarn
-npx keycloakify add-story
-npm run storybook
-```
-
-Framework support:
-- Admin themes are React-only.
-- Angular and Svelte support login and account themes. Their account UI is based on the older multi-page account UI.
-- Keycloakify can't be installed into an existing Angular app. Use a standalone project or a monorepo subproject.
-
 ## Prerequisites
 
-- Node.js plus a package manager.
-- **Maven** on PATH, plus a JDK, to build the jar.
+- Node.js 18+ and a package manager (pnpm, npm, yarn or bun).
+- **Git**. The extension model uses it to track which files you own.
+- **Maven** plus a JDK, to build the jar.
   - macOS: `brew install maven`
   - Debian/Ubuntu: `sudo apt-get install maven`
-  - Windows: `choco install openjdk` and `choco install maven`
+  - Windows: `choco install openjdk maven`
   - Check with `mvn --version`.
 - **Docker**, only for `npx keycloakify start-keycloak`.
 
-## Project layout (React starter)
+## Starting a project
 
-```
-src/
-  login/
-    KcPage.tsx        # entry: switch on kcContext.pageId
-    KcContext.ts      # KcContext type (extend it for custom pages/attributes)
-    KcPageStory.tsx   # createKcPageStory / getKcContextMock for Storybook & dev
-    i18n.ts           # i18nBuilder config
-    main.css          # optional global CSS (import it in KcPage.tsx)
-    pages/            # ejected pages, e.g. Login.tsx, *.stories.tsx
-  account/            # after initialize-account-theme
-  email/              # after initialize-email-theme (native)
-  kc.gen.ts(x)        # GENERATED – do not edit (ThemeName, etc.)
-  main.tsx            # renders KcPage when window.kcContext is defined
-public/keycloakify-dev-resources/   # GENERATED for Storybook – do not edit
-vite.config.ts
-.storybook/
+**Option A: official starter**
+
+```bash
+git clone https://github.com/keycloakify/keycloakify-starter my-theme
+cd my-theme && pnpm install
 ```
 
-Exact files can vary between starter versions. Inspect the project and don't assume this layout.
+There are also starters for Angular (`keycloakify-starter-angular-vite`) and Svelte (`keycloakify-starter-svelte`). React gets the most complete support.
+
+**Option B: new Vite app plus `init`**
+
+```bash
+pnpm create vite my-theme --template react-ts
+cd my-theme
+pnpm add keycloakify
+git init && git add -A && git commit -m "init"
+npx keycloakify init          # choose theme types (login/account/email), install stories
+```
+
+**Option C: start from a published theme package** that ships as a Keycloakify extension:
+
+```bash
+pnpm add keycloakify @oussemasahbeni/keycloakify-login-shadcn
+npx keycloakify init
+```
+
+Its files sync into `src/`. Own only the files you change.
+
+After any of these:
+- add `"postinstall": "keycloakify sync-extensions"` to `package.json` if it isn't already there
+- commit the result
 
 ## vite.config.ts
 
 ```ts
-import { defineConfig } from "vite";
+import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { keycloakify } from "keycloakify/vite-plugin";
+import { defineConfig } from "vite";
+import { kcEnvironmentVariables } from "./src/kc-env";
 
 export default defineConfig({
   plugins: [
     react(),
+    tailwindcss(),
     keycloakify({
-      themeName: "my-theme",              // shown in the Admin Console dropdown; default: package.json name. Array = theme variants
-      accountThemeImplementation: "none", // "none" | "Single-Page" | "Multi-Page" — set by initialize-account-theme, never edit by hand
-      // keycloakVersionTargets: { ... }, // which jars to emit; see docs (key syntax depends on accountThemeImplementation)
-      // environmentVariables: [ ... ],   // env vars readable at runtime from the theme; see docs
-      // startKeycloakOptions: { ... },   // see testing.md
-      // postBuild, kcContextExclusionsFtl, groupId, artifactId, keycloakifyBuildDirPath ...
+      themeName: "my-theme",                       // or an array for theme variants
+      accountThemeImplementation: "none",          // "none" | "Single-Page" | "Multi-Page" — managed by init, don't hand-edit
+      keycloakVersionTargets: {                    // which jars to emit (see build-deploy.md)
+        "22-to-25": false,
+        "all-other-versions": "my-theme.jar"
+      },
+      environmentVariables: kcEnvironmentVariables, // see environment-variables.md
+      kcContextExclusionsFtl: `<@addToXKeycloakifyMessagesIfMessageKey str="welcomeMessage" />`, // see i18n.md
+      startKeycloakOptions: { /* see testing.md */ },
+      postBuild: async buildContext => { /* prune resources, build emails – see build-deploy.md */ }
     })
   ]
 });
 ```
 
-The starter defines a `build-keycloak-theme` script that runs the Vite build and then `keycloakify build`. Run it with `npm run build-keycloak-theme`.
+## package.json essentials
 
-The `keycloakVersionTargets` and `environmentVariables` shapes change between versions. Read the docs before setting them:
-- https://docs.keycloakify.dev/features/compiler-options/keycloakversiontargets
-- https://docs.keycloakify.dev/features/compiler-options/environmentvariables
+```json
+{
+  "type": "module",
+  "imports": {
+    "#/components/*": "./src/components/*.tsx",
+    "#/lib/*": "./src/lib/*.ts",
+    "#/hooks/*": "./src/hooks/*.ts",
+    "#/*": "./src/*"
+  },
+  "scripts": {
+    "postinstall": "keycloakify sync-extensions",
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "build-keycloak-theme": "pnpm run build && keycloakify build",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
+  }
+}
+```
 
-## Adding Keycloakify to an existing Vite project
+- The `#/` subpath imports give stable aliases with no Vite or TypeScript alias config.
+- Add `lint` / `fmt` scripts (ESLint or oxlint, Prettier or oxfmt), and run them before building.
 
-This is supported but harder than using a starter. Follow https://docs.keycloakify.dev/integration-keycloakify-in-your-codebase/vite. In short:
-1. Add the plugin.
-2. Put the theme under a folder such as `src/keycloak-theme/`.
-3. In `main.tsx`, branch on `window.kcContext` so the app renders the theme only when Keycloak injects a context.
+## Entry points
+
+```tsx
+// src/main.tsx — split real vs dev so the mock never ships in the Keycloak bundle path
+if (window.kcContext !== undefined) {
+  void import("./main-kc");
+} else {
+  void import("./main-kc.dev");
+}
+```
+
+```tsx
+// src/main-kc.tsx
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import { KcPage } from "./kc.gen";
+
+if (!window.kcContext) throw new Error("No Keycloak context");
+createRoot(document.getElementById("root")!).render(
+  <StrictMode><KcPage kcContext={window.kcContext} /></StrictMode>
+);
+```
+
+```tsx
+// src/main-kc.dev.tsx — `pnpm dev` renders a mocked page
+import { getKcContextMock } from "./login/mocks/getKcContextMock";
+const kcContext = getKcContextMock({ pageId: "login.ftl", overrides: {} });
+// render <KcPage kcContext={kcContext} /> as above
+```
+
+## Monorepos
+
+The theme can be one package in a pnpm workspace, for example `packages/my-theme` next to `apps/web`.
+- Keep the Keycloakify config, `src/.gitignore` and the `public/keycloak-theme` folder inside that package.
+- Run the CLI from the package directory, or use `--project`.

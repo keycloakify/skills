@@ -2,28 +2,25 @@
 
 | Symptom | Likely cause / fix |
 |---|---|
-| `mvn: command not found` during build | Install Maven and a JDK, and put `mvn` on PATH (`mvn --version`). |
-| `start-keycloak` fails | Docker isn't running, or the port is taken. Change it with `startKeycloakOptions.port`. |
-| Theme missing from the Admin Console dropdown | Wrong jar for the Keycloak version, jar not in `/opt/keycloak/providers/`, or `kc.sh build` not run on an optimized image. Check the startup logs. |
-| Works in Storybook, broken in Keycloak | The real `kcContext` differs from the mock. Reproduce with `start-keycloak`, log `kcContext`, and adjust your story overrides to match. |
-| Ejected page has no effect | No matching `case "<pageId>":` in `KcPage.tsx`. |
-| Custom CSS on `kc*` classes stopped applying | `kcClsx(...)` was removed from the ejected component, or `classes` maps that key to something else. |
-| Translation key type error | The key is missing from `withCustomTranslations` for `en`, or it is server-defined. Use `advancedMsg` for server-defined keys. |
-| Translations imported from JSON ignored | They must be inline literals, because the build analyzes them statically. |
-| Realm Localization overrides ignored | See the docs page "My Realm Overrides Translations do not apply" (uses `kcContextExclusionsFtl`). |
-| Form submit fails | An ejected form changed `action`, an input `name`, or hidden inputs. Restore them from the default page. |
-| Errors in an ejected `Template.tsx` after an upgrade | It's outdated. Re-eject it and port your changes (see migration below). |
-| Old theme still shown after redeploy | Keycloak caches themes. Restart it. In dev, disable the theme cache (`--spi-theme-cache-themes=false --spi-theme-cache-templates=false`). |
+| My change disappeared after `pnpm install` | The file wasn't owned, so `sync-extensions` overwrote it. Run `npx keycloakify own --path "<path>"`, redo the change and commit. |
+| `own` or `init` complains about git | It needs a git repo with the work committed. Run `git init`, then commit first. |
+| New page folder never renders | No `case "<pageId>":` in `login/pages/PageIndex.tsx`, or `index.ts` doesn't `export default`. |
+| Type error accessing page fields | `kcContext` isn't narrowed. Add `assert(kcContext.pageId === "<id>.ftl")` in that component. |
+| `kc.gen.tsx` out of date (missing env var or theme name) | It regenerates on dev or build. Run `npx keycloakify update-kc-gen`. Never edit it by hand. |
+| `mvn: command not found` | Install Maven and a JDK, and put them on PATH. |
+| `start-keycloak` fails | Docker isn't running, or the port is in use. Change it with `startKeycloakOptions.port`. |
+| Theme missing in the Admin Console | Wrong jar for the Keycloak version, jar not in `providers/`, or `kc.sh build` not run on an optimized image. |
+| Works in Storybook, broken in Keycloak | The real `kcContext` differs from the mock. Reproduce with `start-keycloak`, log `kcContext`, and make the mock match. |
+| Form submit returns to the same page with an error, or "invalid request" | The markup lost a field `name`, a hidden input, the `action` URL or the submit `name`. Compare with the synced original (`own --revert` into a scratch branch). |
+| Translation shows the raw key | The key is missing from `withCustomTranslations` for that language (or for `en`), or it's server-defined and needs `advancedMsg`. |
+| Realm Localization override ignored | Add `<@addToXKeycloakifyMessagesIfMessageKey str="key" />` to `kcContextExclusionsFtl`. |
+| Env var always shows the default | It isn't set on the Keycloak process. Use `dockerExtraArgs` with `start-keycloak`. Also check the name against `kc-env.ts`. |
+| Boolean env var behaves wrongly | `kcContext.properties` values are strings. Parse them in `useKcEnv` / `parseKcEnv`. |
+| Flash of light theme before dark | Add an early color-scheme script under `public/keycloak-theme/login/` that sets the `dark` class before React loads. |
+| Layout broken in Arabic or Persian | Physical utilities (`ml-*`, `left-*`) were used. Switch to logical ones, and set `dir` on `<html>`. |
+| Email shows `${...}` literally, or has no translations | The value was hard-coded instead of using `exp(...)`, or the locale is missing from the `buildEmailTheme({ locales })` list or from `src/email/locales/`. |
+| Old theme still shown after redeploy | Keycloak caches themes. Restart it. In dev, use `--spi-theme-cache-themes=false --spi-theme-cache-templates=false`. |
 
-## Migration v10 → v11 (key points)
+For projects on the legacy `keycloakify/login` API and the v10 → v11 migration, see [legacy-api.md](legacy-api.md).
 
-- **i18n**: `createUseI18n(...)` → `i18nBuilder.withThemeName<ThemeName>().withCustomTranslations({...}).build()`, exporting `useI18n` and `type I18n`.
-- **Ejected `Template.tsx`**:
-  - `currentLanguageTag` → `currentLanguage` and `enabledLanguages`.
-  - The `html.lang` effect was removed.
-  - Use `useInitialize({ kcContext, doUseDefaultCss })` from `keycloakify/login/Template.useInitialize`.
-- **Sanitizing**: import `kcSanitize` from `keycloakify/lib/kcSanitize` and wrap `dangerouslySetInnerHTML.__html` values.
-- **Webpack only**: `keycloakify-resources` was renamed to `keycloakify-dev-resources`.
-- **`keycloakVersionTargets`**: the key names changed if you came from ≤ 10.1.4.
-
-For the full and current notes, see https://docs.keycloakify.dev/release-notes-and-upgrade-instructions
+Docs and FAQ: https://docs.keycloakify.dev (index: https://docs.keycloakify.dev/llms.txt)
