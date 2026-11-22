@@ -1,6 +1,6 @@
 ---
 name: keycloakify
-description: Build, customize, test and deploy custom Keycloak themes (login, account, email) with React and Keycloakify v11, including the @keycloakify/login-ui extension model (keycloakify init, own, sync-extensions), Tailwind/shadcn styling, i18n, theme environment variables, Storybook, and jsx-email templates. Use when the user mentions Keycloakify, a Keycloak theme or login/register page customization, kcContext, KcPage, PageIndex, a pageId like "login.ftl", i18nBuilder/msg, kc.gen, keycloak-theme jar, dist_keycloak, or runs `npx keycloakify` commands.
+description: Build and customize Keycloak themes with Keycloakify, covering the login, registration, password reset, OTP, account console and email pages. Includes branding and styling with any CSS approach or component library, translations, runtime-configurable theme options, previewing pages, and building and deploying the theme to Keycloak. Use whenever the user wants to change how Keycloak's login or sign-up screens, account pages or emails look or behave, add a field or a custom page to the login flow, translate the login page, or is working in a project that uses Keycloakify, even if they only say "Keycloak theme" or "customize the Keycloak login page".
 license: MIT
 metadata:
   version: "1.1"
@@ -49,7 +49,7 @@ src/
   main-kc.dev.tsx       # renders with getKcContextMock({ pageId: "login.ftl" }) for `vite dev`
   kc.gen.tsx            # GENERATED
   kc-env.ts             # typed theme env vars: defaults, parse/serialize (see environment-variables.md)
-  components/ui/        # shared design-system components (e.g. shadcn)
+  components/ui/        # shared design-system components (whatever library you use)
   lib/                  # utils (cn, resolveAssetUrl, color scheme…)
   login/
     KcPage.tsx          # providers: KcContextProvider → I18nProvider → StyleLevelCustomization → PageIndex
@@ -57,7 +57,7 @@ src/
     i18n.ts             # i18nBuilder → { I18nProvider, useI18n }
     styleLevelCustomization.tsx   # doUseDefaultCss, classes, global CSS import, theme Provider
     useKcEnv.ts         # typed access to kcContext.properties
-    index.css           # Tailwind entry
+    index.css           # global styles entry
     pages/
       PageIndex.tsx     # switch (kcContext.pageId) → lazy(() => import("./<page-id>"))
       login/            # one folder per page id (login.ftl → login/)
@@ -76,7 +76,7 @@ src/
 public/keycloak-theme/  # static assets served with the theme (login/, account/), partially managed
 ```
 
-A complete real-world example is [keycloakify-editor/packages/shadcn-theme](https://github.com/Oussemasahbeni/keycloakify-editor/tree/feature/editor/packages/shadcn-theme): React, Tailwind v4, shadcn/ui, every login page, a Single-Page account theme and jsx-email templates. Mirror its conventions when the user's project has none of its own.
+A complete real-world example is [keycloakify-editor/packages/shadcn-theme](https://github.com/Oussemasahbeni/keycloakify-editor/tree/feature/editor/packages/shadcn-theme): every login page, a Single-Page account theme and jsx-email templates (it happens to use Tailwind and shadcn/ui). Mirror its structure and practices when the user's project has no conventions of its own, but keep the user's styling stack.
 
 ## Writing a page: the canonical pattern
 
@@ -122,7 +122,7 @@ Rules:
 
 ## Pick the lightest customization that works
 
-1. **Theme-wide look**: global CSS or Tailwind in `src/login/index.css` plus `styleLevelCustomization.tsx`. See [references/styling.md](references/styling.md).
+1. **Theme-wide look**: global styles and providers in `styleLevelCustomization.tsx`, using the project's CSS approach or component library. See [references/styling.md](references/styling.md).
 2. **Text**: `withCustomTranslations` in `src/login/i18n.ts`. See [references/i18n.md](references/i18n.md).
 3. **Runtime-configurable branding** (logo, colors, layout) without a rebuild: theme environment variables. See [references/environment-variables.md](references/environment-variables.md).
 4. **The frame shared by every page** (logo, header, alerts, language switcher): own and edit `login/components/Template/`.
@@ -170,7 +170,7 @@ Read only the ones the task needs:
 
 - [references/setup.md](references/setup.md): starting a project, `init`, `vite.config.ts` options, aliases, scripts
 - [references/login-theme.md](references/login-theme.md): KcPage and providers, PageIndex, Template, forms, User Profile fields, custom KcContext and extension pages
-- [references/styling.md](references/styling.md): Tailwind v4 and shadcn, `styleLevelCustomization`, dark mode, RTL, assets
+- [references/styling.md](references/styling.md): `styleLevelCustomization`, choosing a styling stack (plain CSS, Tailwind, component libraries, CSS-in-JS), dark mode, RTL, assets
 - [references/environment-variables.md](references/environment-variables.md): typed theme env vars (`kc-env.ts`, `useKcEnv`)
 - [references/i18n.md](references/i18n.md): translations, extra languages, per-variant text, realm overrides, language switcher
 - [references/testing.md](references/testing.md): Storybook stories, mocks, `start-keycloak`

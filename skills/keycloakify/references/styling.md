@@ -31,9 +31,24 @@ export function useStyleLevelCustomization(): StyleLevelCustomization {
 
 There are two approaches:
 - **Keep Keycloak's look and tweak it:** `doUseDefaultCss: true`. Then restyle `kc*` classes in CSS, or remap them in `classes` (for example `kcButtonPrimaryClass: "btn btn-primary"`).
-- **Your own design system** (Tailwind/shadcn, MUI, …): `doUseDefaultCss: false`. Style the owned components directly. `kcClsx("kcXxxClass")` calls can stay as hooks for CSS overrides.
+- **Your own design system:** `doUseDefaultCss: false`. Style the owned components directly. `kcClsx("kcXxxClass")` calls can stay as hooks for CSS overrides.
 
-## Tailwind v4 + shadcn/ui (reference setup)
+## Choosing a styling stack
+
+Keycloakify doesn't impose one. A theme is a normal Vite + React app, so use whatever the user's project already uses, and don't introduce Tailwind or shadcn unless asked:
+
+| Stack | Notes |
+|---|---|
+| Plain CSS or CSS Modules | Import the stylesheets from `styleLevelCustomization.tsx` or the components. Zero extra setup. |
+| Sass/Less | Install the preprocessor and Vite handles it. |
+| Tailwind CSS | Use the Vite plugin and a CSS entry imported from `styleLevelCustomization.tsx` (example below). |
+| Component libraries (shadcn/ui, MUI, Mantine, Chakra, Ant Design, PrimeReact…) | Use the components inside the owned pages and Template. Put the library's theme or context provider in the `Provider` returned by `styleLevelCustomization.tsx`. |
+| CSS-in-JS (Emotion, styled-components) | Works as usual. Put any cache or theme provider in `Provider`. |
+| Bootstrap or similar class frameworks | Can be layered onto the default markup through `classes` (`kcLabelClass: "form-label"`, `kcButtonPrimaryClass: "btn btn-primary"`) with `doUseDefaultCss: false`. |
+
+Whatever the stack, the rest of this file (dark mode, RTL, assets, layouts, form contract) still applies.
+
+## Example: Tailwind v4 + shadcn/ui (the reference project's setup)
 
 - **Vite:** add `tailwindcss()` from `@tailwindcss/vite` to `plugins`, next to `react()` and `keycloakify(...)`.
 - **CSS entry:** `src/login/index.css`, imported from `styleLevelCustomization.tsx`.

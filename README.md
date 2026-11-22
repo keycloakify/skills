@@ -4,7 +4,7 @@
 
 | Skill | What it covers |
 |---|---|
-| [`keycloakify`](skills/keycloakify/SKILL.md) | Building, customizing, testing and deploying Keycloak themes (login, account, email) with React and Keycloakify v11. Covers the `@keycloakify/login-ui` extension model, Tailwind/shadcn, i18n, theme env vars, Storybook and jsx-email |
+| [`keycloakify`](skills/keycloakify/SKILL.md) | Building, customizing, testing and deploying Keycloak themes (login, account, email) with React and Keycloakify v11. Covers project structure, styling with any CSS approach or component library, i18n, runtime theme options, Storybook previews, emails and deployment |
 
 ## Install
 
